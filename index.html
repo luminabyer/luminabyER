@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Registro — Ventas e Inventario</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14213D">
+<style>
+  :root{
+    --ink:#14213D; --ink-soft:#3B4A6B; --paper:#FAF9F6; --paper-alt:#F0EEE7;
+    --line:#DEDAD0; --accent:#2F6E4F; --accent-soft:#E4EFE9; --danger:#B3432E;
+    --warn:#C08A1E; --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  h1,h2,h3,.num{font-family:'Space Grotesk',-apple-system,sans-serif;}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){--ink:#F1EEE6;--ink-soft:#C7C2B4;--paper:#15140F;--paper-alt:#201F19;--line:#3A382F;--accent:#5FA985;--accent-soft:#1E2B24;}
+  }
+  :root[data-theme="dark"]{--ink:#F1EEE6;--ink-soft:#C7C2B4;--paper:#15140F;--paper-alt:#201F19;--line:#3A382F;--accent:#5FA985;--accent-soft:#1E2B24;}
+
+  header{
+    padding:18px 20px 14px; border-bottom:1px solid var(--line);
+    display:flex; align-items:baseline; justify-content:space-between;
+    position:sticky; top:0; background:var(--paper); z-index:5;
+  }
+  header h1{font-size:1.15rem; margin:0; letter-spacing:.2px;}
+  header span{font-size:.72rem; color:var(--ink-soft);}
+  main{max-width:640px; margin:0 auto; padding:16px 16px 90px;}
+  .tab{display:none;}
+  .tab.active{display:block; animation:fade .15s ease;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+
+  nav.bottom{
+    position:fixed; bottom:0; left:0; right:0; background:var(--paper);
+    border-top:1px solid var(--line); display:flex;
+    padding-bottom:env(safe-area-inset-bottom,0px); z-index:10;
+  }
+  nav.bottom button{
+    flex:1; background:none; border:none; padding:10px 4px 8px; font-size:.68rem;
+    color:var(--ink-soft); display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  nav.bottom button .dot{width:5px;height:5px;border-radius:50%;background:transparent;}
+  nav.bottom button.active{color:var(--accent);}
+  nav.bottom button.active .dot{background:var(--accent);}
+
+  .card{background:var(--paper-alt); border:1px solid var(--line); border-radius:var(--radius); padding:14px; margin-bottom:10px;}
+  .row{display:flex; gap:8px;}
+  .row > *{flex:1;}
+  label{font-size:.72rem; color:var(--ink-soft); display:block; margin:8px 0 3px;}
+  input,select{
+    width:100%; padding:10px; border:1px solid var(--line); border-radius:8px;
+    background:var(--paper); color:var(--ink); font-size:.95rem;
+  }
+  button.btn{
+    background:var(--ink); color:var(--paper); border:none; border-radius:8px;
+    padding:11px 16px; font-size:.9rem; font-weight:600; cursor:pointer;
+  }
+  button.btn.accent{background:var(--accent);}
+  button.btn.ghost{background:transparent; border:1px solid var(--line); color:var(--ink);}
+  button.btn.danger{background:var(--danger);}
+  .stack{display:flex; flex-direction:column; gap:8px;}
+  .item-row{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);}
+  .item-row:last-child{border-bottom:none;}
+  .item-title{font-weight:600; font-size:.92rem;}
+  .item-sub{font-size:.75rem; color:var(--ink-soft);}
+  .pill{font-size:.68rem; padding:2px 8px; border-radius:20px; background:var(--accent-soft); color:var(--accent); font-weight:600;}
+  .pill.low{background:#F5E4D8; color:var(--warn);}
+  .num{font-variant-numeric:tabular-nums;}
+  .cart-total{display:flex; justify-content:space-between; font-size:1.3rem; font-weight:700; margin:14px 0;}
+  .empty{padding:30px 10px; text-align:center; color:var(--ink-soft); font-size:.85rem;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .grid2 .card{margin:0;}
+  .status{font-size:.7rem; padding:4px 10px; border-radius:20px; display:inline-block; margin-bottom:10px;}
+  .status.ok{background:var(--accent-soft); color:var(--accent);}
+  .status.pending{background:#F5E4D8; color:var(--warn);}
+  a.linklike{color:var(--accent); text-decoration:underline; cursor:pointer; font-size:.8rem;}
+  .thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--paper-alt);border:1px solid var(--line);flex-shrink:0;}
+  .thumb.big{width:100%;height:160px;border-radius:10px;margin-bottom:8px;}
+  .item-row{gap:10px;}
+  .item-left{display:flex;align-items:center;gap:10px;min-width:0;}
+  .icon-btn{background:none;border:1px solid var(--line);border-radius:8px;width:34px;height:34px;font-size:1rem;cursor:pointer;color:var(--ink-soft);}
+  .overlay{position:fixed;inset:0;background:var(--paper);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .overlay .card{max-width:340px;width:100%;}
+  .hint{font-size:.72rem;color:var(--ink-soft);margin:4px 0 0;}
+  .divider{border:none;border-top:1px solid var(--line);margin:16px 0;}
+  select#invRol,select.rolsel{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);}
+</style>
+</head>
+<body>
+
+<div id="authOverlay" class="overlay" style="display:none;">
+  <div class="card">
+    <h3 style="margin:0 0 10px;">Iniciar sesión</h3>
+    <div id="urlSetupBlock">
+      <label>URL de tu Apps Script (para sincronizar cuentas)</label>
+      <input id="authApiUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+    <label>Usuario</label>
+    <input id="loginUsuario" autocomplete="username">
+    <label>Contraseña</label>
+    <input id="loginPass" type="password" autocomplete="current-password">
+    <button class="btn accent" style="width:100%;margin-top:12px;" onclick="intentarLogin()">Entrar</button>
+    <div id="loginError" style="color:var(--danger);font-size:.78rem;margin-top:8px;"></div>
+    <a class="linklike" style="display:block;margin-top:10px;" onclick="sincronizarUsuarios()">Sincronizar cuentas desde la nube</a>
+    <hr class="divider" id="setupDivider">
+    <div id="setupAdmin">
+      <h3 style="margin:0 0 8px;font-size:.9rem;">Primera vez: crea el administrador</h3>
+      <label>Usuario</label><input id="setupUsuario">
+      <label>Contraseña</label><input id="setupPass" type="password">
+      <button class="btn" style="width:100%;margin-top:10px;" onclick="crearAdmin()">Crear administrador</button>
+      <p class="hint">Solo aparece la primera vez, en este dispositivo.</p>
+    </div>
+  </div>
+</div>
+
+<header>
+  <h1>Registro</h1>
+  <span id="clock"></span>
+</header>
+
+<main>
+  <!-- VENTAS -->
+  <section id="tab-ventas" class="tab active">
+    <div id="sync-status" class="status ok">Sin cambios pendientes</div>
+    <div class="card">
+      <label>Buscar artículo</label>
+      <input id="buscarItem" placeholder="Nombre, categoría, talla...">
+      <div id="resultadosBusqueda" class="stack" style="margin-top:8px;"></div>
+    </div>
+    <div class="card" id="carritoCard" style="display:none;">
+      <h3 style="margin:0 0 8px;font-size:.9rem;">Ticket actual</h3>
+      <div id="carrito" class="stack"></div>
+      <div class="cart-total"><span>Total</span><span class="num" id="carritoTotal">L 0.00</span></div>
+      <button class="btn accent" style="width:100%" onclick="cerrarVenta()">Registrar venta</button>
+    </div>
+    <h3 style="font-size:.85rem;color:var(--ink-soft);margin-top:20px;">Ventas de hoy</h3>
+    <div id="ventasHoy" class="card"></div>
+  </section>
+
+  <!-- INVENTARIO -->
+  <section id="tab-inventario" class="tab">
+    <div class="card">
+      <h3 style="margin:0 0 4px;font-size:.9rem;">Nuevo artículo</h3>
+      <div class="row"><input id="invNombre" placeholder="Nombre"><input id="invCategoria" placeholder="Categoría"></div>
+      <div class="row"><input id="invTalla" placeholder="Talla / color"><input id="invSku" placeholder="Código (opcional)"></div>
+      <div class="row"><input id="invCosto" type="number" step="0.01" placeholder="Costo L"><input id="invPrecio" type="number" step="0.01" placeholder="Precio venta L"></div>
+      <div class="row"><input id="invStock" type="number" placeholder="Stock inicial"><input id="invMinimo" type="number" placeholder="Alerta stock mínimo"></div>
+      <label>Foto del artículo (opcional)</label>
+      <input id="invImagenInput" type="file" accept="image/*" capture="environment" onchange="previsualizarImagen(event)">
+      <img id="invImagenPreview" class="thumb big" style="display:none;object-fit:cover;">
+      <button class="btn accent" style="width:100%;margin-top:10px;" onclick="guardarItem()">Agregar al inventario</button>
+    </div>
+    <input id="buscarInv" placeholder="Buscar en inventario..." style="margin-bottom:10px;">
+    <div id="listaInventario" class="card"></div>
+  </section>
+
+  <!-- REPORTES -->
+  <section id="tab-reportes" class="tab">
+    <div class="grid2" style="margin-bottom:10px;">
+      <div class="card"><label>Ventas hoy</label><div class="num" id="repHoy" style="font-size:1.3rem;font-weight:700;">L 0.00</div></div>
+      <div class="card"><label>Ventas 7 días</label><div class="num" id="rep7" style="font-size:1.3rem;font-weight:700;">L 0.00</div></div>
+      <div class="card"><label>Ventas 30 días</label><div class="num" id="rep30" style="font-size:1.3rem;font-weight:700;">L 0.00</div></div>
+      <div class="card"><label>Ganancia est. 30 días</label><div class="num" id="repGan30" style="font-size:1.3rem;font-weight:700;">L 0.00</div></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 8px;font-size:.85rem;">Más vendidos (30 días)</h3>
+      <div id="repTop"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 8px;font-size:.85rem;color:var(--warn);">Stock bajo</h3>
+      <div id="repBajo"></div>
+    </div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="tab-ajustes" class="tab">
+    <div class="card">
+      <h3 style="margin:0 0 8px;font-size:.9rem;">Sincronización (Google Sheets)</h3>
+      <label>URL de la Web App de Apps Script</label>
+      <input id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec">
+      <button class="btn ghost" style="margin-top:10px;" onclick="guardarUrl()">Guardar URL</button>
+      <button class="btn accent" style="margin-top:8px;width:100%;" onclick="sincronizar()">Sincronizar ahora</button>
+      <p style="font-size:.75rem;color:var(--ink-soft);margin-top:10px;">Los datos siempre se guardan primero en este dispositivo (funciona sin internet). Al sincronizar, se suben los cambios pendientes y se descarga el inventario más reciente.</p>
+    </div>
+    <div class="card">
+      <a class="linklike" onclick="exportarJSON()">Descargar copia de seguridad (JSON)</a>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Sesión: <strong id="sesionActual"></strong></span>
+        <button class="btn ghost" onclick="cerrarSesion()">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="card" id="usuariosCard" style="display:none;">
+      <h3 style="margin:0 0 8px;font-size:.9rem;">Usuarios con acceso</h3>
+      <div id="listaUsuarios" class="stack"></div>
+      <hr class="divider">
+      <label>Usuario nuevo</label><input id="nuevoUsuario">
+      <label>Contraseña</label><input id="nuevoPass" type="password">
+      <label>Rol</label>
+      <select id="nuevoRol" class="rolsel"><option value="vendedor">Vendedor (solo vende, no elimina)</option><option value="admin">Administrador</option></select>
+      <button class="btn accent" style="width:100%;margin-top:10px;" onclick="crearUsuario()">Crear usuario</button>
+      <p class="hint">Las contraseñas se guardan como huella digital (hash SHA-256 con sal), nunca en texto plano. Es una protección razonable para controlar el acceso del equipo, no un sistema de seguridad bancario.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="bottom">
+  <button data-tab="ventas" class="active"><span class="dot"></span>Ventas</button>
+  <button data-tab="inventario"><span class="dot"></span>Inventario</button>
+  <button data-tab="reportes"><span class="dot"></span>Reportes</button>
+  <button data-tab="ajustes"><span class="dot"></span>Ajustes</button>
+</nav>
+
+<script>
+/* ---------- IndexedDB ---------- */
+let db;
+const DB_NAME='registroDB', DB_VER=1;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(DB_NAME,DB_VER);
+    r.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('items')) d.createObjectStore('items',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('ventas')) d.createObjectStore('ventas',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('queue')) d.createObjectStore('queue',{keyPath:'id',autoIncrement:true});
+      if(!d.objectStoreNames.contains('meta')) d.createObjectStore('meta',{keyPath:'k'});
+      if(!d.objectStoreNames.contains('usuarios')) d.createObjectStore('usuarios',{keyPath:'usuario'});
+    };
+    r.onsuccess=e=>{db=e.target.result; res(db);};
+    r.onerror=e=>rej(e);
+  });
+}
+function tx(store,mode='readonly'){ return db.transaction(store,mode).objectStore(store); }
+function all(store){ return new Promise(res=>{ const out=[]; tx(store).openCursor().onsuccess=e=>{ const c=e.target.result; if(c){out.push(c.value); c.continue();} else res(out); }; }); }
+function put(store,val){ return new Promise(res=>{ const t=tx(store,'readwrite'); t.put(val).onsuccess=()=>res(); }); }
+function del(store,id){ return new Promise(res=>{ const t=tx(store,'readwrite'); t.delete(id).onsuccess=()=>res(); }); }
+function getMeta(k){ return new Promise(res=>{ tx('meta').get(k).onsuccess=e=>res(e.target.result?e.target.result.v:null); }); }
+function setMeta(k,v){ return put('meta',{k,v}); }
+function queueAdd(op){ return new Promise(res=>{ tx('queue','readwrite').add({op,ts:Date.now()}).onsuccess=()=>res(); }); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+let items=[], ventas=[], sesion=null;
+
+/* ---------- Criptografía (hash de contraseñas) ---------- */
+function randomSalt(){ return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+async function sha256Hex(texto){
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function hashPassword(pass,salt){ return sha256Hex(salt+':'+pass); }
+
+/* ---------- Autenticación ---------- */
+async function usuariosLocales(){ return await all('usuarios'); }
+async function mostrarAuth(){
+  const url=await getMeta('apiUrl');
+  document.getElementById('urlSetupBlock').style.display=url?'none':'block';
+  const lista=await usuariosLocales();
+  document.getElementById('setupDivider').style.display=lista.length?'none':'block';
+  document.getElementById('setupAdmin').style.display=lista.length?'none':'block';
+  document.getElementById('authOverlay').style.display='flex';
+}
+async function intentarLogin(){
+  const url=authApiUrl.value.trim(); if(url) await setMeta('apiUrl',url);
+  const usuario=loginUsuario.value.trim(), pass=loginPass.value;
+  const u=await new Promise(res=>{ tx('usuarios').get(usuario).onsuccess=e=>res(e.target.result); });
+  if(!u){ loginError.textContent='Usuario no encontrado en este dispositivo. Prueba "Sincronizar cuentas".'; return; }
+  const h=await hashPassword(pass,u.salt);
+  if(h!==u.hash){ loginError.textContent='Contraseña incorrecta.'; return; }
+  sesion={usuario:u.usuario, rol:u.rol};
+  await setMeta('sesion',sesion);
+  document.getElementById('authOverlay').style.display='none';
+  await arrancarApp();
+}
+async function crearAdmin(){
+  const usuario=setupUsuario.value.trim(), pass=setupPass.value;
+  if(!usuario||!pass){ alert('Completa usuario y contraseña'); return; }
+  const salt=randomSalt(), hash=await hashPassword(pass,salt);
+  const u={usuario,salt,hash,rol:'admin'};
+  await put('usuarios',u); await queueAdd({t:'usuario',data:u});
+  sesion={usuario, rol:'admin'}; await setMeta('sesion',sesion);
+  document.getElementById('authOverlay').style.display='none';
+  await arrancarApp(); markPending();
+}
+async function sincronizarUsuarios(){
+  const url=await getMeta('apiUrl')||authApiUrl.value.trim();
+  if(!url){ loginError.textContent='Primero escribe la URL de tu Apps Script.'; return; }
+  await setMeta('apiUrl',url);
+  try{
+    const resp=await fetch(url+'?accion=usuarios');
+    const remoto=await resp.json();
+    for(const u of remoto){ await put('usuarios',u); }
+    loginError.style.color='var(--accent)'; loginError.textContent='Cuentas sincronizadas. Ingresa tus datos.';
+    mostrarAuth();
+  }catch(e){ loginError.textContent='No se pudo conectar. Revisa tu internet o la URL.'; }
+}
+async function cerrarSesion(){ sesion=null; await setMeta('sesion',null); location.reload(); }
+async function crearUsuario(){
+  const usuario=nuevoUsuario.value.trim(), pass=nuevoPass.value, rol=nuevoRol.value;
+  if(!usuario||!pass){ alert('Completa usuario y contraseña'); return; }
+  const salt=randomSalt(), hash=await hashPassword(pass,salt);
+  const u={usuario,salt,hash,rol};
+  await put('usuarios',u); await queueAdd({t:'usuario',data:u});
+  nuevoUsuario.value=''; nuevoPass.value='';
+  renderUsuarios(); markPending();
+}
+async function renderUsuarios(){
+  document.getElementById('usuariosCard').style.display=sesion.rol==='admin'?'block':'none';
+  document.getElementById('sesionActual').textContent=sesion.usuario+' ('+sesion.rol+')';
+  if(sesion.rol!=='admin') return;
+  const lista=await usuariosLocales();
+  listaUsuarios.innerHTML=lista.map(u=>`<div class="item-row"><span>${u.usuario}</span><span class="pill">${u.rol}</span></div>`).join('');
+}
+
+/* ---------- Imágenes ---------- */
+let imagenPendiente=null;
+function compressImage(file,maxW=700,quality=0.7){
+  return new Promise((res,rej)=>{
+    const img=new Image(); const reader=new FileReader();
+    reader.onload=e=>{ img.onload=()=>{
+      const scale=Math.min(1,maxW/img.width);
+      const w=img.width*scale, h=img.height*scale;
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      res(c.toDataURL('image/jpeg',quality));
+    }; img.onerror=rej; img.src=e.target.result; };
+    reader.onerror=rej; reader.readAsDataURL(file);
+  });
+}
+async function previsualizarImagen(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  imagenPendiente=await compressImage(file);
+  invImagenPreview.src=imagenPendiente; invImagenPreview.style.display='block';
+}
+async function compartirItem(id){
+  const it=items.find(i=>i.id===id); if(!it) return;
+  const texto=`${it.nombre}${it.variante?' - '+it.variante:''} — L ${it.precio.toFixed(2)}`;
+  const src=it.imagenUrl||it.imagen;
+  try{
+    if(navigator.share){
+      if(src && navigator.canShare){
+        const blob=await (await fetch(src)).blob();
+        const file=new File([blob], it.nombre.replace(/\s+/g,'_')+'.jpg', {type:blob.type||'image/jpeg'});
+        if(navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:it.nombre, text:texto}); return; }
+      }
+      await navigator.share({title:it.nombre, text:texto+(it.imagenUrl?'\n'+it.imagenUrl:'')});
+    } else {
+      window.open('https://wa.me/?text='+encodeURIComponent(texto+(it.imagenUrl?'\n'+it.imagenUrl:'')),'_blank');
+    }
+  }catch(e){}
+}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('nav.bottom button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('nav.bottom button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+  if(b.dataset.tab==='reportes') renderReportes();
+  if(b.dataset.tab==='inventario') renderInventario();
+}));
+
+/* ---------- Inventario ---------- */
+async function guardarItem(){
+  const nombre=invNombre.value.trim();
+  if(!nombre){ alert('Ponle un nombre al artículo'); return; }
+  const it={
+    id:uid(), nombre, categoria:invCategoria.value.trim(), variante:invTalla.value.trim(),
+    sku:invSku.value.trim(), costo:parseFloat(invCosto.value)||0, precio:parseFloat(invPrecio.value)||0,
+    stock:parseInt(invStock.value)||0, minimo:parseInt(invMinimo.value)||0, updatedAt:Date.now(),
+    imagen:imagenPendiente||''
+  };
+  items.push(it); await put('items',it);
+  await queueAdd({t:'item', data: imagenPendiente ? {...it, imagenBase64:imagenPendiente} : it});
+  [invNombre,invCategoria,invTalla,invSku,invCosto,invPrecio,invStock,invMinimo].forEach(i=>i.value='');
+  invImagenInput.value=''; invImagenPreview.style.display='none'; imagenPendiente=null;
+  renderInventario(); markPending();
+}
+async function borrarItem(id){
+  if(!confirm('¿Eliminar este artículo?')) return;
+  items=items.filter(i=>i.id!==id); await del('items',id); await queueAdd({t:'delete_item',data:{id}});
+  renderInventario(); markPending();
+}
+function renderInventario(){
+  const q=(buscarInv.value||'').toLowerCase();
+  const list=items.filter(i=>!q || (i.nombre+i.categoria+i.variante).toLowerCase().includes(q));
+  const el=document.getElementById('listaInventario');
+  if(!list.length){ el.innerHTML='<div class="empty">No hay artículos todavía. Agrega el primero arriba.</div>'; return; }
+  el.innerHTML=list.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(i=>`
+    <div class="item-row">
+      <div class="item-left">
+        <img class="thumb" src="${i.imagenUrl||i.imagen||''}" onerror="this.style.visibility='hidden'" style="${i.imagenUrl||i.imagen?'':'visibility:hidden'}">
+        <div>
+          <div class="item-title">${i.nombre}</div>
+          <div class="item-sub">${[i.categoria,i.variante].filter(Boolean).join(' · ')} · L ${i.precio.toFixed(2)}</div>
+        </div>
+      </div>
+      <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <span class="pill ${i.stock<=i.minimo?'low':''}">${i.stock} en stock</span>
+        <div style="display:flex;gap:6px;">
+          <button class="icon-btn" title="Compartir" onclick="compartirItem('${i.id}')">↗</button>
+          ${sesion.rol==='admin'?`<button class="icon-btn" title="Eliminar" onclick="borrarItem('${i.id}')">✕</button>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+buscarInv.addEventListener('input',renderInventario);
+
+/* ---------- Ventas ---------- */
+let carrito=[];
+buscarItem.addEventListener('input',()=>{
+  const q=buscarItem.value.toLowerCase();
+  const el=document.getElementById('resultadosBusqueda');
+  if(!q){ el.innerHTML=''; return; }
+  const res=items.filter(i=>(i.nombre+i.categoria+i.variante).toLowerCase().includes(q) && i.stock>0).slice(0,6);
+  el.innerHTML=res.map(i=>`<div class="item-row">
+    <div class="item-left" style="cursor:pointer" onclick="agregarCarrito('${i.id}')">
+      <img class="thumb" src="${i.imagenUrl||i.imagen||''}" onerror="this.style.visibility='hidden'" style="${i.imagenUrl||i.imagen?'':'visibility:hidden'}">
+      <div><div class="item-title">${i.nombre}</div><div class="item-sub">${[i.categoria,i.variante].filter(Boolean).join(' · ')}</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="num">L ${i.precio.toFixed(2)}</span>
+      <button class="icon-btn" title="Compartir con cliente" onclick="event.stopPropagation();compartirItem('${i.id}')">↗</button>
+    </div></div>`).join('') || '<div class="empty">Sin resultados con stock disponible</div>';
+});
+function agregarCarrito(id){
+  const it=items.find(i=>i.id===id); if(!it) return;
+  const line=carrito.find(c=>c.id===id);
+  if(line){ if(line.cant<it.stock) line.cant++; } else carrito.push({id,nombre:it.nombre,precio:it.precio,cant:1});
+  buscarItem.value=''; resultadosBusqueda.innerHTML=''; renderCarrito();
+}
+function renderCarrito(){
+  const card=document.getElementById('carritoCard');
+  card.style.display=carrito.length?'block':'none';
+  document.getElementById('carrito').innerHTML=carrito.map(c=>`
+    <div class="item-row"><div class="item-title">${c.nombre}</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn ghost" style="padding:4px 10px" onclick="cambiarCant('${c.id}',-1)">−</button>
+      <span class="num">${c.cant}</span>
+      <button class="btn ghost" style="padding:4px 10px" onclick="cambiarCant('${c.id}',1)">+</button>
+      <span class="num" style="min-width:64px;text-align:right">L ${(c.precio*c.cant).toFixed(2)}</span>
+    </div></div>`).join('');
+  const total=carrito.reduce((s,c)=>s+c.precio*c.cant,0);
+  document.getElementById('carritoTotal').textContent='L '+total.toFixed(2);
+}
+function cambiarCant(id,d){
+  const line=carrito.find(c=>c.id===id);
+  line.cant+=d; if(line.cant<=0) carrito=carrito.filter(c=>c.id!==id);
+  renderCarrito();
+}
+async function cerrarVenta(){
+  if(!carrito.length) return;
+  const venta={id:uid(), fecha:Date.now(), items:carrito.map(c=>({id:c.id,nombre:c.nombre,precio:c.precio,cant:c.cant})),
+    total:carrito.reduce((s,c)=>s+c.precio*c.cant,0)};
+  for(const c of carrito){ const it=items.find(i=>i.id===c.id); if(it){ it.stock-=c.cant; await put('items',it); } }
+  ventas.push(venta); await put('ventas',venta); await queueAdd({t:'venta',data:venta});
+  carrito=[]; renderCarrito(); renderInventario(); renderVentasHoy(); markPending();
+}
+function renderVentasHoy(){
+  const start=new Date(); start.setHours(0,0,0,0);
+  const hoy=ventas.filter(v=>v.fecha>=start.getTime()).sort((a,b)=>b.fecha-a.fecha);
+  const el=document.getElementById('ventasHoy');
+  if(!hoy.length){ el.innerHTML='<div class="empty">Todavía no hay ventas hoy</div>'; return; }
+  el.innerHTML=hoy.map(v=>`<div class="item-row"><div>
+    <div class="item-title">${new Date(v.fecha).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}</div>
+    <div class="item-sub">${v.items.map(i=>i.cant+'x '+i.nombre).join(', ')}</div></div>
+    <div class="num" style="font-weight:600">L ${v.total.toFixed(2)}</div></div>`).join('');
+}
+
+/* ---------- Reportes ---------- */
+function renderReportes(){
+  const now=Date.now(), day=86400000;
+  const startHoy=new Date(); startHoy.setHours(0,0,0,0);
+  const sum=(vs)=>vs.reduce((s,v)=>s+v.total,0);
+  const hoy=ventas.filter(v=>v.fecha>=startHoy.getTime());
+  const d7=ventas.filter(v=>v.fecha>=now-7*day);
+  const d30=ventas.filter(v=>v.fecha>=now-30*day);
+  repHoy.textContent='L '+sum(hoy).toFixed(2);
+  rep7.textContent='L '+sum(d7).toFixed(2);
+  rep30.textContent='L '+sum(d30).toFixed(2);
+  const gan=d30.reduce((s,v)=>s+v.items.reduce((s2,it)=>{ const orig=items.find(i=>i.id===it.id); const costo=orig?orig.costo:0; return s2+(it.precio-costo)*it.cant; },0),0);
+  repGan30.textContent='L '+gan.toFixed(2);
+  const conteo={};
+  d30.forEach(v=>v.items.forEach(it=>{ conteo[it.nombre]=(conteo[it.nombre]||0)+it.cant; }));
+  const top=Object.entries(conteo).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  repTop.innerHTML=top.length? top.map(([n,c])=>`<div class="item-row"><span>${n}</span><span class="pill">${c} vendidos</span></div>`).join('') : '<div class="empty">Aún no hay ventas suficientes</div>';
+  const bajos=items.filter(i=>i.stock<=i.minimo);
+  repBajo.innerHTML=bajos.length? bajos.map(i=>`<div class="item-row"><span>${i.nombre}</span><span class="pill low">${i.stock} restante</span></div>`).join('') : '<div class="empty">Ningún artículo en nivel bajo</div>';
+}
+
+/* ---------- Sync con Google Sheets (Apps Script) ---------- */
+async function guardarUrl(){ await setMeta('apiUrl',apiUrl.value.trim()); alert('URL guardada'); }
+async function markPending(){
+  const q=await all('queue');
+  const el=document.getElementById('sync-status');
+  if(q.length){ el.className='status pending'; el.textContent=q.length+' cambio(s) sin sincronizar'; }
+  else { el.className='status ok'; el.textContent='Sin cambios pendientes'; }
+}
+async function sincronizar(){
+  const url=await getMeta('apiUrl');
+  if(!url){ alert('Primero guarda la URL de tu Apps Script en Ajustes'); return; }
+  if(!navigator.onLine){ alert('No hay conexión a internet. Se sincronizará cuando vuelva.'); return; }
+  const cola=await all('queue');
+  try{
+    for(const q of cola){
+      const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(q.op)});
+      if(q.op.t==='item'){
+        try{
+          const result=await resp.json();
+          if(result.imagenUrl){
+            const it=items.find(i=>i.id===q.op.data.id);
+            if(it){ it.imagenUrl=result.imagenUrl; await put('items',it); }
+          }
+        }catch(e){}
+      }
+      await del('queue',q.id);
+    }
+    const resp=await fetch(url+'?accion=inventario');
+    if(resp.ok){
+      const remoto=await resp.json();
+      for(const it of remoto){ await put('items',it); }
+      items=await all('items'); renderInventario();
+    }
+    markPending();
+    alert('Sincronización completa');
+  }catch(e){ alert('No se pudo sincronizar. Se reintentará más tarde.'); }
+}
+window.addEventListener('online',()=>{ sincronizar().catch(()=>{}); });
+
+function exportarJSON(){
+  const blob=new Blob([JSON.stringify({items,ventas},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='backup-registro.json'; a.click();
+}
+
+/* ---------- Reloj + init ---------- */
+function tickClock(){ clock.textContent=new Date().toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'}); }
+setInterval(tickClock,60000);
+
+async function arrancarApp(){
+  items=await all('items'); ventas=await all('ventas');
+  const savedUrl=await getMeta('apiUrl'); if(savedUrl) apiUrl.value=savedUrl;
+  renderInventario(); renderVentasHoy(); renderReportes(); renderUsuarios(); markPending(); tickClock();
+}
+(async function init(){
+  await openDB();
+  const savedSesion=await getMeta('sesion');
+  if(savedSesion){ sesion=savedSesion; await arrancarApp(); }
+  else { await mostrarAuth(); }
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+})();
+</script>
+</body>
+</html>

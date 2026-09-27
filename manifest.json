@@ -1,0 +1,11 @@
+{
+  "name": "Registro de Ventas e Inventario",
+  "short_name": "Registro",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FAF9F6",
+  "theme_color": "#14213D",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
